@@ -1,0 +1,11 @@
+# Firebase cache
+.firebase/
+
+# Claude
+.claude/
+
+# macOS
+.DS_Store
+
+# Node (if ever added)
+node_modules/
