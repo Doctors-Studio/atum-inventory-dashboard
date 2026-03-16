@@ -1801,6 +1801,17 @@
     color: var(--ps-gray-500);
   }
 
+  /* Location low-stock tags shown next to status badge when filtered by location */
+  .status-cell { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .loc-tag {
+    display: inline-flex; align-items: center;
+    padding: 2px 7px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.4px;
+    white-space: nowrap;
+  }
+  .loc-tag.boca    { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
+  .loc-tag.jupiter { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+
   .status-dot {
     width: 6px;
     height: 6px;
@@ -3082,15 +3093,15 @@
         <div class="form-row">
           <div class="form-group">
             <label>Boca Qty</label>
-            <input type="number" id="editBoca" placeholder="--" min="-999" max="99999">
+            <input type="number" id="editBoca" placeholder="--" min="-999" max="99999" oninput="syncTotalStockQty()">
           </div>
           <div class="form-group">
             <label>Jupiter Qty</label>
-            <input type="number" id="editJupiter" placeholder="--" min="-999" max="99999">
+            <input type="number" id="editJupiter" placeholder="--" min="-999" max="99999" oninput="syncTotalStockQty()">
           </div>
           <div class="form-group">
             <label>Dropship Qty</label>
-            <input type="number" id="editDropship" placeholder="--" min="-999" max="99999">
+            <input type="number" id="editDropship" placeholder="--" min="-999" max="99999" oninput="syncTotalStockQty()">
           </div>
         </div>
       </div>
@@ -3164,6 +3175,13 @@
   }
 
   // ============ EDIT PRODUCT ============
+  function syncTotalStockQty() {
+    const boca     = parseFloat(document.getElementById('editBoca').value)     || 0;
+    const jupiter  = parseFloat(document.getElementById('editJupiter').value)  || 0;
+    const dropship = parseFloat(document.getElementById('editDropship').value) || 0;
+    document.getElementById('editStockQty').value = boca + jupiter + dropship;
+  }
+
   function openEditModal(productId) {
     const p = allProducts.find(x => x.id == productId);
     if (!p) return;
@@ -4369,15 +4387,23 @@
       const cells = row.children;
       if (cells.length >= 9) {
         // Column indices: 0=Name, 1=SKU, 2=Source, 3=Supplier, 4=Boca, 5=Jupiter, 6=Dropship, 7=TotalQty, 8=Status, 9=Actions
-        if (loc === '') {
-          // Show only boca and jupiter columns, hide dropship by default, show Total Qty
+        if (loc === '' && selectedLocations.length === 0) {
+          // No location filter — show Boca + Jupiter, hide Dropship, show Total Qty
           cells[4].style.display = '';
           cells[5].style.display = '';
           cells[6].style.display = 'none';
-          cells[7].style.display = ''; // Show Total Qty when no location filter
-          // Update separator colspan to 9 (all columns visible)
+          cells[7].style.display = '';
           if (row.classList.contains('section-separator')) {
             cells[0].colSpan = 9;
+          }
+        } else if (selectedLocations.length > 1) {
+          // Multiple locations selected — show both Boca + Jupiter, hide Dropship + Total Qty
+          cells[4].style.display = selectedLocations.includes('boca') ? '' : 'none';
+          cells[5].style.display = selectedLocations.includes('jupiter') ? '' : 'none';
+          cells[6].style.display = 'none';
+          cells[7].style.display = 'none'; // Hide Total Qty for multi-location
+          if (row.classList.contains('section-separator')) {
+            cells[0].colSpan = 8;
           }
         } else if (loc === 'boca') {
           cells[4].style.display = '';
@@ -4867,7 +4893,12 @@
                           + (hasDropship ? p.dropshipQty : 0);
           if (atumTotal > 0) {
             const threshold = getEffectiveThreshold(p, configThreshold);
-            if (atumTotal <= threshold) return 'lowstock';
+            // Flag as low stock if ANY location has qty > 0 but <= threshold
+            // (qty = 0 means depleted/out at that location, not "low")
+            const anyLocLow = (hasBoca     && p.bocaQty     > 0 && p.bocaQty     <= threshold)
+                           || (hasJupiter  && p.jupiterQty  > 0 && p.jupiterQty  <= threshold)
+                           || (hasDropship && p.dropshipQty > 0 && p.dropshipQty <= threshold);
+            if (anyLocLow) return 'lowstock';
           }
         } else if (p.manageStock && p.stockQty !== 999) {
           // No ATUM location data but WC tracks qty — use it for low stock detection
@@ -4890,7 +4921,12 @@
         if (p.stockQty !== 999 && p.stockQty <= 0) return 'outofstock';
         if (atumTotal > 0) {
           const threshold = getEffectiveThreshold(p, configThreshold);
-          if (atumTotal <= threshold) return 'lowstock';
+          // Flag as low stock if ANY location has qty > 0 but <= threshold
+          // (qty = 0 means depleted/out at that location, not "low")
+          const anyLocLow = (hasBoca     && p.bocaQty     > 0 && p.bocaQty     <= threshold)
+                         || (hasJupiter  && p.jupiterQty  > 0 && p.jupiterQty  <= threshold)
+                         || (hasDropship && p.dropshipQty > 0 && p.dropshipQty <= threshold);
+          if (anyLocLow) return 'lowstock';
           return 'instock';
         }
         return 'instock';
@@ -5114,10 +5150,21 @@
       // For numeric calculations, ensure we have a number
       const numericQty = (typeof displayQty === 'number') ? displayQty : (displayQty === 'N/A' ? 999 : parseInt(displayQty) || 0);
 
-      // When a single location is filtered, classify by that location's qty so the
-      // STATUS badge matches what the filter used. Otherwise use global ATUM logic.
+      // Classify by location qty so STATUS badge always matches the active filter.
+      // Single location: use that location's qty directly.
+      // Multiple locations: use the WORST status across all selected locations.
+      // No location filter: use global ATUM logic.
       let bucket;
-      if (currentLocationFilter === 'boca' && p.bocaQty !== null && p.bocaQty !== undefined) {
+      if (selectedLocations.length > 1) {
+        const priority = { outofstock: 0, lowstock: 1, instock: 2, onbackorder: 3, unmanaged: 4 };
+        bucket = selectedLocations.reduce((worst, loc) => {
+          const locQty = loc === 'boca' ? p.bocaQty : loc === 'jupiter' ? p.jupiterQty : p.dropshipQty;
+          const locBucket = (locQty !== null && locQty !== undefined)
+            ? classifyProduct(p, threshold, locQty)
+            : 'outofstock';
+          return (priority[locBucket] ?? 99) < (priority[worst] ?? 99) ? locBucket : worst;
+        }, 'instock');
+      } else if (currentLocationFilter === 'boca' && p.bocaQty !== null && p.bocaQty !== undefined) {
         bucket = classifyProduct(p, threshold, p.bocaQty);
       } else if (currentLocationFilter === 'jupiter' && p.jupiterQty !== null && p.jupiterQty !== undefined) {
         bucket = classifyProduct(p, threshold, p.jupiterQty);
@@ -5125,6 +5172,14 @@
         bucket = classifyProduct(p, threshold, p.dropshipQty);
       } else {
         bucket = classifyProduct(p, threshold);
+      }
+
+      // When a single status filter is active with a location filter, align the badge
+      // with what the user filtered for — avoids confusing "Out of Stock" badges
+      // appearing inside a "Low Stock" filter view, and vice versa.
+      if (selectedLocations.length > 0 && selectedStatuses.length === 1) {
+        if (selectedStatuses[0] === 'low')         bucket = 'lowstock';
+        else if (selectedStatuses[0] === 'outofstock') bucket = 'outofstock';
       }
 
       const statusClass = {
@@ -5195,7 +5250,19 @@
         <td>${fmtLocQty(p.jupiterQty)}</td>
         <td>${fmtLocQty(p.dropshipQty)}</td>
         <td><span class="stock-qty ${qtyClass}">${displayQty}</span>${changeHtml}</td>
-        <td><span class="status-badge ${statusClass}"><span class="status-dot"></span>${statusLabel}</span></td>
+        <td class="status-cell"><span class="status-badge ${statusClass}"><span class="status-dot"></span>${statusLabel}</span>${
+          // Show per-location tags when location filter is active:
+          //   low stock  → tag locations where qty is 1–threshold (genuinely low)
+          //   out of stock → tag locations where qty is 0 or below (depleted)
+          (selectedLocations.length > 0 && (bucket === 'lowstock' || bucket === 'outofstock')) ? [
+            bucket === 'lowstock'
+              ? (selectedLocations.includes('boca')    && p.bocaQty    != null && p.bocaQty    > 0 && p.bocaQty    <= threshold ? '<span class="loc-tag boca">Boca</span>'    : '')
+              : (selectedLocations.includes('boca')    && p.bocaQty    != null && p.bocaQty    <= 0                             ? '<span class="loc-tag boca">Boca</span>'    : ''),
+            bucket === 'lowstock'
+              ? (selectedLocations.includes('jupiter') && p.jupiterQty != null && p.jupiterQty > 0 && p.jupiterQty <= threshold ? '<span class="loc-tag jupiter">Jupiter</span>' : '')
+              : (selectedLocations.includes('jupiter') && p.jupiterQty != null && p.jupiterQty <= 0                             ? '<span class="loc-tag jupiter">Jupiter</span>' : ''),
+          ].join('') : ''
+        }</td>
         <td><div class="actions-cell"><button class="action-btn" onclick="openEditModal('${p.id}')" title="Edit product">&#9998; Edit</button>${deleteBtn}</div></td>
       </tr>`;
     }).join('');
