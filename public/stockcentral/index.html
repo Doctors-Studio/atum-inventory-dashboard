@@ -4236,31 +4236,30 @@
         if (!locMatch) return false;
       }
 
-      // Status filter — uses the same "worst location" logic as the badge renderer,
-      // so a product passes only if its displayed badge matches the selected status.
+      // Status filter — per-location classification using ANY match (some).
+      // A product passes if its status matches the filter at ANY selected location.
+      // The badge is separately forced to match (see alignment code in renderTable).
       if (selectedStatuses.length > 0) {
-        let effectiveBucket;
-        if (selectedLocations.length > 1) {
-          const priority = { outofstock: 0, lowstock: 1, instock: 2, onbackorder: 3, unmanaged: 4 };
-          effectiveBucket = selectedLocations.reduce((worst, loc) => {
+        let statusMatch;
+        if (selectedLocations.length > 0) {
+          statusMatch = selectedLocations.some(loc => {
             const locQty = loc === 'boca' ? p.bocaQty : loc === 'jupiter' ? p.jupiterQty : p.dropshipQty;
-            const locBucket = (locQty !== null && locQty !== undefined)
+            const locStatus = (locQty !== null && locQty !== undefined)
               ? classifyProduct(p, threshold, locQty) : 'outofstock';
-            return (priority[locBucket] ?? 99) < (priority[worst] ?? 99) ? locBucket : worst;
-          }, 'instock');
-        } else if (selectedLocations.length === 1) {
-          const loc = selectedLocations[0];
-          const locQty = loc === 'boca' ? p.bocaQty : loc === 'jupiter' ? p.jupiterQty : p.dropshipQty;
-          effectiveBucket = (locQty !== null && locQty !== undefined)
-            ? classifyProduct(p, threshold, locQty) : 'outofstock';
+            return selectedStatuses.some(s =>
+              (s === 'instock'    && locStatus === 'instock')    ||
+              (s === 'low'        && locStatus === 'lowstock')   ||
+              (s === 'outofstock' && locStatus === 'outofstock')
+            );
+          });
         } else {
-          effectiveBucket = classifyProduct(p, threshold);
+          const status = classifyProduct(p, threshold);
+          statusMatch = selectedStatuses.some(s =>
+            (s === 'instock'    && status === 'instock')    ||
+            (s === 'low'        && status === 'lowstock')   ||
+            (s === 'outofstock' && status === 'outofstock')
+          );
         }
-        const statusMatch = selectedStatuses.some(s =>
-          (s === 'instock'    && effectiveBucket === 'instock')    ||
-          (s === 'low'        && effectiveBucket === 'lowstock')   ||
-          (s === 'outofstock' && effectiveBucket === 'outofstock')
-        );
         if (!statusMatch) return false;
       }
 
@@ -5245,8 +5244,9 @@
       // with what the user filtered for — avoids confusing "Out of Stock" badges
       // appearing inside a "Low Stock" filter view, and vice versa.
       if (selectedLocations.length > 0 && selectedStatuses.length === 1) {
-        if (selectedStatuses[0] === 'low')         bucket = 'lowstock';
+        if (selectedStatuses[0] === 'low')             bucket = 'lowstock';
         else if (selectedStatuses[0] === 'outofstock') bucket = 'outofstock';
+        else if (selectedStatuses[0] === 'instock')    bucket = 'instock';
       }
 
       const statusClass = {
@@ -5319,15 +5319,20 @@
         <td><span class="stock-qty ${qtyClass}">${displayQty}</span>${changeHtml}</td>
         <td class="status-cell"><span class="status-badge ${statusClass}"><span class="status-dot"></span>${statusLabel}</span>${
           // Show per-location tags when location filter is active:
-          //   low stock  → tag locations where qty is 1–threshold (genuinely low)
+          //   in stock     → tag locations where qty is above threshold (where it's stocked)
+          //   low stock    → tag locations where qty is 1–threshold (genuinely low)
           //   out of stock → tag locations where qty is 0 or below (depleted)
-          (selectedLocations.length > 0 && (bucket === 'lowstock' || bucket === 'outofstock')) ? [
-            bucket === 'lowstock'
-              ? (selectedLocations.includes('boca')    && p.bocaQty    != null && p.bocaQty    > 0 && p.bocaQty    <= threshold ? '<span class="loc-tag boca">Boca</span>'    : '')
-              : (selectedLocations.includes('boca')    && p.bocaQty    != null && p.bocaQty    <= 0                             ? '<span class="loc-tag boca">Boca</span>'    : ''),
-            bucket === 'lowstock'
-              ? (selectedLocations.includes('jupiter') && p.jupiterQty != null && p.jupiterQty > 0 && p.jupiterQty <= threshold ? '<span class="loc-tag jupiter">Jupiter</span>' : '')
-              : (selectedLocations.includes('jupiter') && p.jupiterQty != null && p.jupiterQty <= 0                             ? '<span class="loc-tag jupiter">Jupiter</span>' : ''),
+          (selectedLocations.length > 0 && (bucket === 'instock' || bucket === 'lowstock' || bucket === 'outofstock')) ? [
+            bucket === 'instock'
+              ? (selectedLocations.includes('boca')    && p.bocaQty    != null && p.bocaQty    > threshold                      ? '<span class="loc-tag boca">Boca</span>'    : '')
+              : bucket === 'lowstock'
+                ? (selectedLocations.includes('boca')    && p.bocaQty    != null && p.bocaQty    > 0 && p.bocaQty    <= threshold ? '<span class="loc-tag boca">Boca</span>'    : '')
+                : (selectedLocations.includes('boca')    && p.bocaQty    != null && p.bocaQty    <= 0                             ? '<span class="loc-tag boca">Boca</span>'    : ''),
+            bucket === 'instock'
+              ? (selectedLocations.includes('jupiter') && p.jupiterQty != null && p.jupiterQty > threshold                      ? '<span class="loc-tag jupiter">Jupiter</span>' : '')
+              : bucket === 'lowstock'
+                ? (selectedLocations.includes('jupiter') && p.jupiterQty != null && p.jupiterQty > 0 && p.jupiterQty <= threshold ? '<span class="loc-tag jupiter">Jupiter</span>' : '')
+                : (selectedLocations.includes('jupiter') && p.jupiterQty != null && p.jupiterQty <= 0                             ? '<span class="loc-tag jupiter">Jupiter</span>' : ''),
           ].join('') : ''
         }</td>
         <td><div class="actions-cell"><button class="action-btn" onclick="openEditModal('${p.id}')" title="Edit product">&#9998; Edit</button>${deleteBtn}</div></td>
