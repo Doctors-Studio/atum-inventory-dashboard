@@ -4558,12 +4558,44 @@
     handleFilter();
   }
 
-  // Backwards compat for keyboard shortcuts
+  // Keyboard shortcut quick filters (1-4)
   function applyQuickFilter(type) {
-    if (type === 'all') applySidebarFilter('all');
-    else if (type === 'instock') applySidebarFilter('managed-in');
-    else if (type === 'out') applySidebarFilter('managed-out');
-    else applySidebarFilter('all');
+    // Reset to managed view, clear location + search
+    document.getElementById('viewFilter').value = 'managed';
+    currentSidebarFilter = 'managed';
+    resetMultiSelect('location');
+    const si = document.getElementById('searchInput'); if (si) si.value = '';
+
+    // Clear all status checkboxes
+    document.querySelectorAll('#statusMenu input').forEach(cb => cb.checked = false);
+    const btn = document.getElementById('statusMultiBtn');
+
+    if (type === 'all') {
+      selectedStatuses = [];
+      btn.textContent = 'All';
+      btn.classList.remove('has-selection');
+    } else if (type === 'instock') {
+      const cb = document.querySelector('#statusMenu input[value="instock"]');
+      if (cb) cb.checked = true;
+      selectedStatuses = ['instock'];
+      btn.textContent = 'In Stock';
+      btn.classList.add('has-selection');
+    } else if (type === 'low') {
+      const cb = document.querySelector('#statusMenu input[value="low"]');
+      if (cb) cb.checked = true;
+      selectedStatuses = ['low'];
+      btn.textContent = 'Low Stock';
+      btn.classList.add('has-selection');
+    } else if (type === 'out') {
+      const cb = document.querySelector('#statusMenu input[value="outofstock"]');
+      if (cb) cb.checked = true;
+      selectedStatuses = ['outofstock'];
+      btn.textContent = 'Out of Stock';
+      btn.classList.add('has-selection');
+    }
+
+    currentPage = 1;
+    handleFilter();
   }
 
   // ============ SORTING ============
