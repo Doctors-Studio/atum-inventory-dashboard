@@ -1779,6 +1779,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
   }
 
   .status-badge.in-stock {
@@ -2875,30 +2876,18 @@
 
     <div class="table-wrapper">
       <table>
-        <colgroup>
-          <col id="col-name"     style="width: 22%">
-          <col id="col-sku"      style="width: 14%">
-          <col id="col-source"   style="width: 9%">
-          <col id="col-supplier" style="width: 9%">
-          <col id="col-boca"     style="width: 7%">
-          <col id="col-jupiter"  style="width: 7%">
-          <col id="col-dropship" style="width: 0%; display: none">
-          <col id="col-stock"    style="width: 8%">
-          <col id="col-status"   style="width: 14%">
-          <col id="col-actions"  style="width: 8%">
-        </colgroup>
         <thead>
           <tr>
             <th onclick="sortBy('name')" id="th-name">Product Name <span class="sort-arrow">&#9650;</span></th>
-            <th onclick="sortBy('sku')" id="th-sku">SKU <span class="sort-arrow">&#9650;</span></th>
-            <th onclick="sortBy('source')" id="th-source">Source <span class="sort-arrow">&#9650;</span></th>
-            <th onclick="sortBy('supplier')" id="th-supplier">Supplier <span class="sort-arrow">&#9650;</span></th>
-            <th onclick="sortBy('boca')" id="th-boca">Boca <span class="sort-arrow">&#9650;</span></th>
-            <th onclick="sortBy('jupiter')" id="th-jupiter">Jupiter <span class="sort-arrow">&#9650;</span></th>
-            <th onclick="sortBy('dropship')" id="th-dropship">Dropship <span class="sort-arrow">&#9650;</span></th>
-            <th onclick="sortBy('stock')" id="th-stock">Total Qty <span class="sort-arrow">&#9650;</span></th>
-            <th onclick="sortBy('status')" id="th-status">Status <span class="sort-arrow">&#9650;</span></th>
-            <th style="min-width:80px;">Actions</th>
+            <th onclick="sortBy('sku')" id="th-sku" style="width:155px;">SKU <span class="sort-arrow">&#9650;</span></th>
+            <th onclick="sortBy('source')" id="th-source" style="width:100px;">Source <span class="sort-arrow">&#9650;</span></th>
+            <th onclick="sortBy('supplier')" id="th-supplier" style="width:110px;">Supplier <span class="sort-arrow">&#9650;</span></th>
+            <th onclick="sortBy('boca')" id="th-boca" style="width:75px;">Boca <span class="sort-arrow">&#9650;</span></th>
+            <th onclick="sortBy('jupiter')" id="th-jupiter" style="width:75px;">Jupiter <span class="sort-arrow">&#9650;</span></th>
+            <th onclick="sortBy('dropship')" id="th-dropship" style="width:80px;">Dropship <span class="sort-arrow">&#9650;</span></th>
+            <th onclick="sortBy('stock')" id="th-stock" style="width:90px;">Total Qty <span class="sort-arrow">&#9650;</span></th>
+            <th onclick="sortBy('status')" id="th-status" style="width:140px;">Status <span class="sort-arrow">&#9650;</span></th>
+            <th style="width:80px;">Actions</th>
           </tr>
         </thead>
         <tbody id="productTableBody"></tbody>
