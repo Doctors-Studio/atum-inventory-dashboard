@@ -5297,6 +5297,7 @@
   function goToPage(page) {
     currentPage = page;
     renderTable();
+    updateLocationColumns();
     document.querySelector('.table-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
