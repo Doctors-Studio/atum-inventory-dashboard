@@ -2875,6 +2875,18 @@
 
     <div class="table-wrapper">
       <table>
+        <colgroup>
+          <col id="col-name"     style="width: 22%">
+          <col id="col-sku"      style="width: 14%">
+          <col id="col-source"   style="width: 9%">
+          <col id="col-supplier" style="width: 9%">
+          <col id="col-boca"     style="width: 7%">
+          <col id="col-jupiter"  style="width: 7%">
+          <col id="col-dropship" style="width: 0%; display: none">
+          <col id="col-stock"    style="width: 8%">
+          <col id="col-status"   style="width: 14%">
+          <col id="col-actions"  style="width: 8%">
+        </colgroup>
         <thead>
           <tr>
             <th onclick="sortBy('name')" id="th-name">Product Name <span class="sort-arrow">&#9650;</span></th>
@@ -5337,6 +5349,7 @@
     PAGE_SIZE = parseInt(size);
     currentPage = 1;
     renderTable();
+    updateLocationColumns();
   }
 
   // ============ CSV EXPORT ============
