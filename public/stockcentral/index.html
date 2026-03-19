@@ -4236,31 +4236,31 @@
         if (!locMatch) return false;
       }
 
-      // Status filter — when location(s) are selected, classify by location-specific qty
-      // so "In Stock / Low / Out of Stock" reflects stock AT the selected location(s).
-      // With multiple locations: product passes if it matches the status at ANY selected location.
+      // Status filter — uses the same "worst location" logic as the badge renderer,
+      // so a product passes only if its displayed badge matches the selected status.
       if (selectedStatuses.length > 0) {
-        let statusMatch;
-        if (selectedLocations.length > 0) {
-          statusMatch = selectedLocations.some(loc => {
+        let effectiveBucket;
+        if (selectedLocations.length > 1) {
+          const priority = { outofstock: 0, lowstock: 1, instock: 2, onbackorder: 3, unmanaged: 4 };
+          effectiveBucket = selectedLocations.reduce((worst, loc) => {
             const locQty = loc === 'boca' ? p.bocaQty : loc === 'jupiter' ? p.jupiterQty : p.dropshipQty;
-            const locStatus = (locQty !== null && locQty !== undefined)
-              ? classifyProduct(p, threshold, locQty)
-              : 'outofstock';
-            return selectedStatuses.some(s =>
-              (s === 'instock'    && locStatus === 'instock')    ||
-              (s === 'low'        && locStatus === 'lowstock')   ||
-              (s === 'outofstock' && locStatus === 'outofstock')
-            );
-          });
+            const locBucket = (locQty !== null && locQty !== undefined)
+              ? classifyProduct(p, threshold, locQty) : 'outofstock';
+            return (priority[locBucket] ?? 99) < (priority[worst] ?? 99) ? locBucket : worst;
+          }, 'instock');
+        } else if (selectedLocations.length === 1) {
+          const loc = selectedLocations[0];
+          const locQty = loc === 'boca' ? p.bocaQty : loc === 'jupiter' ? p.jupiterQty : p.dropshipQty;
+          effectiveBucket = (locQty !== null && locQty !== undefined)
+            ? classifyProduct(p, threshold, locQty) : 'outofstock';
         } else {
-          const status = classifyProduct(p, threshold);
-          statusMatch = selectedStatuses.some(s =>
-            (s === 'instock'    && status === 'instock')    ||
-            (s === 'low'        && status === 'lowstock')   ||
-            (s === 'outofstock' && status === 'outofstock')
-          );
+          effectiveBucket = classifyProduct(p, threshold);
         }
+        const statusMatch = selectedStatuses.some(s =>
+          (s === 'instock'    && effectiveBucket === 'instock')    ||
+          (s === 'low'        && effectiveBucket === 'lowstock')   ||
+          (s === 'outofstock' && effectiveBucket === 'outofstock')
+        );
         if (!statusMatch) return false;
       }
 
