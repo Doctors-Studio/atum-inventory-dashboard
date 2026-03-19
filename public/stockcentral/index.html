@@ -4436,6 +4436,40 @@
         }
       }
     });
+
+    // Proportional column widths — prevent Product Name from ballooning
+    const W = {
+      all:    { name:'24%', sku:'14%', source:'9%', supplier:'9%', boca:'7%', jupiter:'7%', stock:'9%', status:'14%', actions:'7%' },
+      single: { name:'29%', sku:'16%', source:'10%', supplier:'10%', loc:'10%', status:'17%', actions:'8%' },
+      both:   { name:'26%', sku:'15%', source:'9%', supplier:'9%', boca:'8%', jupiter:'8%', status:'17%', actions:'8%' },
+    };
+    const thN = document.getElementById('th-name');
+    const thK = document.getElementById('th-sku');
+    const thSrc = document.getElementById('th-source');
+    const thSup = document.getElementById('th-supplier');
+    const thStat = document.getElementById('th-status');
+    const thAct = document.querySelector('#productTable th:last-child') || document.querySelector('table th:last-child');
+    if (loc === '' && selectedLocations.length === 0) {
+      const w = W.all;
+      if (thN) thN.style.width = w.name; if (thK) thK.style.width = w.sku;
+      if (thSrc) thSrc.style.width = w.source; if (thSup) thSup.style.width = w.supplier;
+      if (thBoca) thBoca.style.width = w.boca; if (thJupiter) thJupiter.style.width = w.jupiter;
+      if (thStock) thStock.style.width = w.stock; if (thStat) thStat.style.width = w.status;
+      if (thAct) thAct.style.width = w.actions;
+    } else if (selectedLocations.length > 1) {
+      const w = W.both;
+      if (thN) thN.style.width = w.name; if (thK) thK.style.width = w.sku;
+      if (thSrc) thSrc.style.width = w.source; if (thSup) thSup.style.width = w.supplier;
+      if (thBoca) thBoca.style.width = w.boca; if (thJupiter) thJupiter.style.width = w.jupiter;
+      if (thStat) thStat.style.width = w.status; if (thAct) thAct.style.width = w.actions;
+    } else {
+      const w = W.single;
+      const thLoc = loc === 'boca' ? thBoca : loc === 'jupiter' ? thJupiter : thDropship;
+      if (thN) thN.style.width = w.name; if (thK) thK.style.width = w.sku;
+      if (thSrc) thSrc.style.width = w.source; if (thSup) thSup.style.width = w.supplier;
+      if (thLoc) thLoc.style.width = w.loc;
+      if (thStat) thStat.style.width = w.status; if (thAct) thAct.style.width = w.actions;
+    }
   }
 
   let currentTab = 'overview';
