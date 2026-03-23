@@ -5809,7 +5809,8 @@
     if (!profile) return;
     const initials = profile.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     document.getElementById('userAvatar').textContent = initials || 'DS';
-    document.getElementById('userDisplayName').textContent = profile.name;
+    const dispEl = document.getElementById('userDisplayName');
+    if (dispEl) dispEl.textContent = profile.name;
     // Update role display
     const roleEl = document.querySelector('.user-role');
     if (roleEl) roleEl.textContent = profile.role || 'Clinical Team';
