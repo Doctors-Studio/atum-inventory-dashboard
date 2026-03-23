@@ -2609,7 +2609,7 @@
   /* ============ LOGIN SCREEN ============ */
   #loginScreen {
     position: fixed; inset: 0; z-index: 9999;
-    background: linear-gradient(135deg, #dde6f8 0%, #ede8fb 50%, #f5f0ff 100%);
+    background: transparent;
     display: flex; align-items: center; justify-content: center;
     flex-direction: column; gap: 32px;
   }
@@ -5783,26 +5783,35 @@
     const profile = getUserProfile();
     document.getElementById('userNameInput').value = profile ? profile.name : '';
     document.getElementById('userRoleSelect').value = profile ? (profile.role || 'Clinical Team') : 'Clinical Team';
-    document.getElementById('userModal').classList.add('active');
+    const el = document.getElementById('userModal');
+    el.style.display = '';
+    el.classList.add('active');
     setTimeout(() => document.getElementById('userNameInput').focus(), 200);
   }
 
   function closeUserModal() {
-    document.getElementById('userModal').classList.remove('active');
+    const el = document.getElementById('userModal');
+    el.classList.remove('active');
+    el.style.display = 'none';
   }
 
   function saveUserProfile() {
-    const name = document.getElementById('userNameInput').value.trim();
-    const role = document.getElementById('userRoleSelect').value;
-    if (!name) {
-      document.getElementById('userNameInput').focus();
-      return;
+    try {
+      const name = document.getElementById('userNameInput').value.trim();
+      const role = document.getElementById('userRoleSelect').value;
+      if (!name) {
+        document.getElementById('userNameInput').focus();
+        return;
+      }
+      const profile = { name, role };
+      localStorage.setItem('atum_dash_user', JSON.stringify(profile));
+      applyUserProfile(profile);
+      closeUserModal();
+      showToast(`Profile saved — Welcome, ${name}!`);
+    } catch(e) {
+      console.error('saveUserProfile error:', e);
+      alert('Could not save profile: ' + e.message);
     }
-    const profile = { name, role };
-    localStorage.setItem('atum_dash_user', JSON.stringify(profile));
-    applyUserProfile(profile);
-    closeUserModal();
-    showToast(`Welcome, ${name}!`);
   }
 
   function applyUserProfile(profile) {
