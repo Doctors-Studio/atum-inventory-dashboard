@@ -2609,66 +2609,72 @@
   /* ============ LOGIN SCREEN ============ */
   #loginScreen {
     position: fixed; inset: 0; z-index: 9999;
-    background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 25%, #fce4ec 50%, #f3e5f5 75%, #fce4ec 100%);
+    background: #0f172a;
     display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 32px;
   }
-  .login-card {
-    background: rgba(255,255,255,0.88);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(233,30,99,0.12);
-    border-radius: 20px;
-    padding: 40px 36px;
-    width: 100%; max-width: 380px;
-    box-shadow: 0 8px 32px rgba(233,30,99,0.08), 0 2px 8px rgba(0,0,0,0.06);
+  .login-header {
     text-align: center;
   }
   .login-logo {
-    width: 52px; height: 52px; border-radius: 14px;
+    width: 64px; height: 64px; border-radius: 16px;
     background: linear-gradient(135deg, #e91e63, #9c27b0);
     display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 18px; color: white;
-    margin: 0 auto 16px;
+    font-weight: 800; font-size: 20px; color: white;
+    margin: 0 auto 20px;
   }
   .login-title {
-    font-size: 22px; font-weight: 700; color: var(--ps-gray-800); margin: 0 0 4px;
+    font-size: 26px; font-weight: 700; color: #f1f5f9; margin: 0 0 6px;
   }
   .login-subtitle {
-    font-size: 13px; color: var(--ps-gray-500); margin: 0 0 28px;
+    font-size: 14px; color: #64748b; margin: 0;
   }
-  .login-field { text-align: left; margin-bottom: 16px; }
-  .login-label {
-    display: block; font-size: 12px; font-weight: 600;
-    color: var(--ps-gray-600); margin-bottom: 6px;
+  .login-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 36px 32px;
+    width: 100%; max-width: 420px;
+    text-align: center;
   }
-  .login-input {
-    width: 100%; padding: 10px 14px; box-sizing: border-box;
-    border: 1px solid var(--ps-gray-200); border-radius: 8px;
-    font-size: 14px; font-family: inherit; color: var(--ps-gray-800);
-    background: rgba(255,255,255,0.8);
-    transition: border-color 0.15s, box-shadow 0.15s; outline: none;
+  .login-card-title {
+    font-size: 18px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px;
   }
-  .login-input:focus {
-    border-color: #8b5cf6;
-    box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
+  .login-card-sub {
+    font-size: 13px; color: #94a3b8; margin: 0 0 28px; line-height: 1.5;
+  }
+  .login-google-btn {
+    width: 100%; padding: 13px 0;
+    background: #ffffff; color: #1e293b;
+    border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 600; font-family: inherit;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: background 0.15s, transform 0.1s;
+    margin-bottom: 16px;
+  }
+  .login-google-btn:hover { background: #f1f5f9; }
+  .login-google-btn:active { transform: scale(0.99); }
+  .login-google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-google-btn svg { flex-shrink: 0; }
+  .login-domain-note {
+    font-size: 12px; color: #64748b; margin: 0 0 20px;
+  }
+  .login-divider {
+    border: none; border-top: 1px solid #334155; margin: 0 0 16px;
+  }
+  .login-hipaa-note {
+    font-size: 11px; color: #475569; line-height: 1.5; margin: 0;
   }
   .login-error {
-    font-size: 13px; color: #dc2626;
-    background: rgba(239,68,68,0.08);
+    font-size: 13px; color: #fca5a5;
+    background: rgba(239,68,68,0.1);
     border: 1px solid rgba(239,68,68,0.2);
     border-radius: 8px; padding: 10px 14px;
-    text-align: left; margin-bottom: 12px; display: none;
+    margin-bottom: 12px; display: none;
   }
-  .login-btn {
-    width: 100%; padding: 11px 0;
-    background: linear-gradient(135deg, #e91e63, #9c27b0);
-    color: white; border: none; border-radius: 8px;
-    font-size: 14px; font-weight: 600; font-family: inherit;
-    cursor: pointer; margin-top: 4px;
-    transition: opacity 0.15s, transform 0.1s;
+  .login-footer {
+    font-size: 12px; color: #475569; text-align: center;
   }
-  .login-btn:hover { opacity: 0.9; }
-  .login-btn:active { transform: scale(0.99); }
-  .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
   .btn-signout {
     height: 30px; padding: 0 12px; border-radius: 8px;
     border: 1px solid rgba(233,30,99,0.25);
@@ -2681,19 +2687,6 @@
     border-color: rgba(239,68,68,0.3);
     color: #dc2626;
   }
-  body.dark-mode .login-card {
-    background: rgba(30,20,45,0.92);
-    border-color: rgba(233,30,99,0.2);
-  }
-  body.dark-mode .login-title { color: #f1f5f9; }
-  body.dark-mode .login-subtitle { color: var(--ps-gray-400); }
-  body.dark-mode .login-label { color: var(--ps-gray-400); }
-  body.dark-mode .login-input {
-    background: rgba(15,10,25,0.6);
-    border-color: rgba(233,30,99,0.2);
-    color: #e2e8f0;
-  }
-  body.dark-mode .login-input:focus { border-color: #8b5cf6; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -2702,25 +2695,24 @@
 
 <!-- ============ LOGIN SCREEN ============ -->
 <div id="loginScreen">
-  <div class="login-card">
+  <div class="login-header">
     <div class="login-logo">DS</div>
     <h1 class="login-title">Stock Central</h1>
-    <p class="login-subtitle">Doctors Studio Inventory</p>
-    <form id="loginForm" onsubmit="handleLogin(event)">
-      <div class="login-field">
-        <label class="login-label" for="loginEmail">Email</label>
-        <input type="email" id="loginEmail" class="login-input"
-               placeholder="you@doctorsstudio.com" autocomplete="email" required>
-      </div>
-      <div class="login-field">
-        <label class="login-label" for="loginPassword">Password</label>
-        <input type="password" id="loginPassword" class="login-input"
-               placeholder="••••••••" autocomplete="current-password" required>
-      </div>
-      <div id="loginError" class="login-error"></div>
-      <button type="submit" id="loginBtn" class="login-btn">Sign In</button>
-    </form>
+    <p class="login-subtitle">Doctors Studio · Inventory Management</p>
   </div>
+  <div class="login-card">
+    <p class="login-card-title">Welcome Back</p>
+    <p class="login-card-sub">Sign in with your Doctors Studio Google account to continue</p>
+    <div id="loginError" class="login-error"></div>
+    <button class="login-google-btn" id="loginBtn" onclick="handleGoogleSignIn()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Sign in with Google
+    </button>
+    <p class="login-domain-note">Access is restricted to @doctorsstudio.com accounts</p>
+    <hr class="login-divider">
+    <p class="login-hipaa-note">This system contains protected health information (PHI).<br>All access is logged for HIPAA compliance.</p>
+  </div>
+  <p class="login-footer">By signing in, you agree to the company's data access policies</p>
 </div>
 
 <!-- Main Area — full width, no sidebar -->
@@ -3305,20 +3297,20 @@
     }
   });
 
-  async function handleLogin(e) {
-    e.preventDefault();
-    const email    = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const btn      = document.getElementById('loginBtn');
+  async function handleGoogleSignIn() {
+    const btn = document.getElementById('loginBtn');
     showLoginError('');
     btn.disabled = true;
-    btn.textContent = 'Signing in…';
     try {
-      await auth.signInWithEmailAndPassword(email, password);
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ hd: 'doctorsstudio.com' });
+      await auth.signInWithPopup(provider);
+      // onAuthStateChanged handles the rest
     } catch (err) {
-      showLoginError(authErrorMessage(err.code));
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        showLoginError(authErrorMessage(err.code));
+      }
       btn.disabled = false;
-      btn.textContent = 'Sign In';
     }
   }
 
@@ -3335,13 +3327,10 @@
 
   function authErrorMessage(code) {
     const map = {
-      'auth/invalid-email':          'That doesn\'t look like a valid email address.',
-      'auth/user-not-found':         'No account found with that email.',
-      'auth/wrong-password':         'Incorrect password. Please try again.',
-      'auth/invalid-credential':     'Incorrect email or password.',
-      'auth/too-many-requests':      'Too many failed attempts. Try again in a few minutes.',
+      'auth/popup-blocked':          'Pop-up was blocked. Please allow pop-ups for this site.',
       'auth/user-disabled':          'This account has been disabled.',
-      'auth/network-request-failed': 'Network error — check your connection.'
+      'auth/network-request-failed': 'Network error — check your connection.',
+      'auth/unauthorized-domain':    'This domain is not authorized. Contact your administrator.'
     };
     return map[code] || 'Sign-in failed. Please try again.';
   }
