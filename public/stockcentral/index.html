@@ -2690,6 +2690,44 @@
     border-color: rgba(239,68,68,0.3);
     color: #dc2626;
   }
+
+  /* ── Purchase Orders ───────────────────────────────── */
+  .po-filter-bar {
+    display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+    background: white; border-radius: 12px;
+    padding: 16px 20px; margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .po-stats-row {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .po-stat-card {
+    flex: 1; min-width: 120px;
+    background: white; border-radius: 12px;
+    padding: 16px 20px; display: flex; flex-direction: column; gap: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border-left: 4px solid #e2e8f0;
+  }
+  .po-stat-card.pending   { border-left-color: #f59e0b; }
+  .po-stat-card.ordered   { border-left-color: #3b82f6; }
+  .po-stat-card.on-the-way { border-left-color: #14b8a6; }
+  .po-stat-card.received  { border-left-color: #10b981; }
+  .po-stat-num  { font-size: 24px; font-weight: 700; color: #1e293b; }
+  .po-stat-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; }
+  .po-id { font-weight: 600; color: #6366f1; }
+  .po-status-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap;
+  }
+  .po-status-badge::before { content: '●'; font-size: 8px; }
+  .po-status-badge.pending    { background: rgba(245,158,11,0.12); color: #d97706; }
+  .po-status-badge.ordered    { background: rgba(59,130,246,0.12); color: #2563eb; }
+  .po-status-badge.on-the-way { background: rgba(20,184,166,0.12); color: #0d9488; }
+  .po-status-badge.receiving  { background: rgba(139,92,246,0.12); color: #7c3aed; }
+  .po-status-badge.received   { background: rgba(16,185,129,0.12); color: #059669; }
+  .po-status-badge.cancelled  { background: rgba(148,163,184,0.12); color: #64748b; }
+  .po-status-badge.failed     { background: rgba(239,68,68,0.12);  color: #dc2626; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -2772,6 +2810,7 @@
   <div class="main-tab-bar" id="mainTabBar">
     <button class="main-tab active" id="tabOverview" onclick="switchTab('overview')">Overview</button>
     <button class="main-tab" id="tabProducts" onclick="switchTab('products')">Products</button>
+    <button class="main-tab" id="tabPO" onclick="switchTab('po')">Purchase Orders</button>
     <div class="tab-bar-right">
       <button class="filter-action-btn" onclick="openHelpModal()">&#10067; Help</button>
       <button class="filter-action-btn" onclick="openConfigModal()">&#9881; Settings</button>
@@ -3050,6 +3089,85 @@
     </div>
   </div><!-- end table-section -->
 </div><!-- end analyticsSection -->
+
+<!-- Purchase Orders Section -->
+<div id="poSection" style="display:none; padding: 0 24px 24px;">
+
+  <!-- Filter bar -->
+  <div class="po-filter-bar">
+    <div class="filter-group">
+      <label class="filter-label">STATUS</label>
+      <select id="poStatusFilter" class="filter-select" onchange="handlePOFilter()">
+        <option value="">All Statuses</option>
+        <option value="pending">Pending</option>
+        <option value="ordered">Ordered</option>
+        <option value="on-the-way">On the Way</option>
+        <option value="receiving">Receiving</option>
+        <option value="received">Received</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="failed">Failed</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">SUPPLIER</label>
+      <select id="poSupplierFilter" class="filter-select" onchange="handlePOFilter()">
+        <option value="">All Suppliers</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">SEARCH</label>
+      <div class="search-wrapper">
+        <span class="search-icon">&#128269;</span>
+        <input type="text" id="poSearchInput" class="search-input" placeholder="Search PO # or supplier..." oninput="handlePOFilter()">
+      </div>
+    </div>
+    <div style="margin-left:auto;">
+      <button class="btn btn-primary btn-sm" onclick="fetchPurchaseOrders(true)" id="poRefreshBtn">&#8635; Refresh POs</button>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="po-stats-row" id="poStatsRow">
+    <div class="po-stat-card"><span class="po-stat-num" id="poStatTotal">—</span><span class="po-stat-label">Total POs</span></div>
+    <div class="po-stat-card pending"><span class="po-stat-num" id="poStatPending">—</span><span class="po-stat-label">Pending</span></div>
+    <div class="po-stat-card ordered"><span class="po-stat-num" id="poStatOrdered">—</span><span class="po-stat-label">Ordered</span></div>
+    <div class="po-stat-card on-the-way"><span class="po-stat-num" id="poStatOnTheWay">—</span><span class="po-stat-label">On the Way</span></div>
+    <div class="po-stat-card received"><span class="po-stat-num" id="poStatReceived">—</span><span class="po-stat-label">Received</span></div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-section" style="margin-top:0;">
+    <div id="poLoadingState" style="display:none; padding:40px; text-align:center; color:#94a3b8;">
+      <div class="mini-spinner" style="margin:0 auto 12px;"></div>
+      Loading purchase orders...
+    </div>
+    <table id="poTable" style="width:100%; table-layout:fixed;">
+      <colgroup>
+        <col style="width:80px;">
+        <col style="width:110px;">
+        <col style="width:120px;">
+        <col style="width:200px;">
+        <col style="width:80px;">
+        <col style="width:100px;">
+        <col style="width:130px;">
+      </colgroup>
+      <thead>
+        <tr>
+          <th onclick="sortPOBy('id')" style="cursor:pointer;">PO # <span class="sort-icon">↕</span></th>
+          <th onclick="sortPOBy('date')" style="cursor:pointer;">Date <span class="sort-icon">↕</span></th>
+          <th onclick="sortPOBy('expected')" style="cursor:pointer;">Expected <span class="sort-icon">↕</span></th>
+          <th onclick="sortPOBy('supplier')" style="cursor:pointer;">Supplier <span class="sort-icon">↕</span></th>
+          <th>Items</th>
+          <th onclick="sortPOBy('total')" style="cursor:pointer;">Total <span class="sort-icon">↕</span></th>
+          <th onclick="sortPOBy('status')" style="cursor:pointer;">Status <span class="sort-icon">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="poTableBody">
+        <tr><td colspan="7" style="text-align:center; padding:48px; color:#94a3b8;">Click "Refresh POs" to load purchase orders.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
 <!-- Config Modal -->
 <div class="modal-overlay" id="configModal">
@@ -3345,6 +3463,11 @@
   let categories = [];
   let localOverrides = {}; // id -> override object for local edits
   let editingProductId = null; // null = new product mode
+
+  // Purchase Orders
+  let allPurchaseOrders = [];
+  let poSortKey = 'date';
+  let poSortDir = 'desc';
 
   // ============ LOCAL OVERRIDES (persistence) ============
   function loadOverrides() {
@@ -4684,12 +4807,25 @@
     currentTab = tab;
     document.getElementById('tabOverview').classList.toggle('active', tab === 'overview');
     document.getElementById('tabProducts').classList.toggle('active', tab === 'products');
+    document.getElementById('tabPO').classList.toggle('active', tab === 'po');
 
     const filterBar    = document.getElementById('productsFilterBar');
     const analytics    = document.getElementById('analyticsSection');
     const tableSection = document.querySelector('.table-section');
     const quickStats   = document.getElementById('quickStatsBar');
     const alertsSec    = document.getElementById('alertsSection');
+    const poSection    = document.getElementById('poSection');
+
+    if (poSection) poSection.style.display = (tab === 'po') ? '' : 'none';
+
+    if (tab === 'po') {
+      if (filterBar)    filterBar.style.display    = 'none';
+      if (tableSection) tableSection.style.display = 'none';
+      if (analytics)    analytics.style.display    = 'none';
+      if (quickStats)   quickStats.style.display   = 'none';
+      if (alertsSec)    alertsSec.style.display     = 'none';
+      return;
+    }
 
     if (tab === 'overview') {
       if (filterBar)    filterBar.style.display    = 'none';
@@ -5991,6 +6127,220 @@
       showState('initial');
     }
   }
+
+  // ── Purchase Orders ──────────────────────────────────────────────────────
+
+  async function loadPOsFromRTDB() {
+    try {
+      const token = await getRTDBToken();
+      const url = token
+        ? `${RTDB_URL}/po_cache.json?auth=${token}`
+        : `${RTDB_URL}/po_cache.json`;
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      if (!data || !Array.isArray(data.orders) || data.orders.length === 0) return null;
+      return data;
+    } catch (e) { return null; }
+  }
+
+  async function savePOsToRTDB(orders) {
+    try {
+      const token = await getRTDBToken();
+      const url = token
+        ? `${RTDB_URL}/po_cache.json?auth=${token}`
+        : `${RTDB_URL}/po_cache.json`;
+      await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orders, timestamp: Date.now() })
+      });
+    } catch (e) { /* silent */ }
+  }
+
+  async function fetchPurchaseOrders(forceRefresh = false) {
+    const btn = document.getElementById('poRefreshBtn');
+    const loading = document.getElementById('poLoadingState');
+    const tbody = document.getElementById('poTableBody');
+
+    if (btn) { btn.disabled = true; btn.textContent = '⟳ Loading…'; }
+    if (loading) loading.style.display = '';
+    if (tbody) tbody.style.opacity = '0.4';
+
+    // Try cache first (unless forced refresh)
+    if (!forceRefresh) {
+      const lsRaw = localStorage.getItem('atum_po_cache');
+      if (lsRaw) {
+        try {
+          const cached = JSON.parse(lsRaw);
+          if (cached && Array.isArray(cached.orders) && cached.orders.length > 0) {
+            allPurchaseOrders = cached.orders;
+            populatePOSupplierFilter();
+            renderPOTable();
+            if (loading) loading.style.display = 'none';
+            if (tbody) tbody.style.opacity = '';
+            if (btn) { btn.disabled = false; btn.textContent = '↺ Refresh POs'; }
+            // Background refresh from RTDB
+            loadPOsFromRTDB().then(rtdbData => {
+              if (rtdbData && rtdbData.orders) {
+                allPurchaseOrders = rtdbData.orders;
+                populatePOSupplierFilter();
+                renderPOTable();
+              }
+            });
+            return;
+          }
+        } catch (e) {}
+      }
+    }
+
+    // Fetch from ATUM API
+    const config = getConfig();
+    const baseUrl = `${config.siteUrl}/wp-json/wc/v3/atum/purchase-orders?consumer_key=${encodeURIComponent(config.consumerKey)}&consumer_secret=${encodeURIComponent(config.consumerSecret)}&per_page=100`;
+
+    try {
+      const firstResp = await fetch(baseUrl + '&page=1');
+      if (!firstResp.ok) throw new Error(`API error ${firstResp.status}: ${firstResp.statusText}`);
+      const totalPages = parseInt(firstResp.headers.get('X-WP-TotalPages')) || 1;
+      let allPOs = await firstResp.json();
+
+      if (totalPages > 1) {
+        const pagePromises = [];
+        for (let p = 2; p <= totalPages; p++) {
+          pagePromises.push(fetch(baseUrl + '&page=' + p).then(r => r.ok ? r.json() : []).catch(() => []));
+        }
+        const results = await Promise.all(pagePromises);
+        results.forEach(data => { if (Array.isArray(data)) allPOs = allPOs.concat(data); });
+      }
+
+      allPurchaseOrders = allPOs;
+      const cachePayload = { orders: allPOs, timestamp: Date.now() };
+      localStorage.setItem('atum_po_cache', JSON.stringify(cachePayload));
+      savePOsToRTDB(allPOs);
+      populatePOSupplierFilter();
+      renderPOTable();
+      showToast(`Loaded ${allPOs.length} purchase orders`);
+    } catch (e) {
+      showToast('Failed to load purchase orders: ' + e.message, 'error');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Error: ${e.message}</td></tr>`;
+    } finally {
+      if (loading) loading.style.display = 'none';
+      if (tbody) tbody.style.opacity = '';
+      if (btn) { btn.disabled = false; btn.textContent = '↺ Refresh POs'; }
+    }
+  }
+
+  function getPOStatusClass(status) {
+    const map = { pending: 'pending', ordered: 'ordered', 'on-the-way': 'on-the-way', receiving: 'receiving', received: 'received', cancelled: 'cancelled', failed: 'failed' };
+    return map[status] || 'pending';
+  }
+
+  function getPOStatusLabel(status) {
+    const map = { pending: 'Pending', ordered: 'Ordered', 'on-the-way': 'On the Way', receiving: 'Receiving', received: 'Received', cancelled: 'Cancelled', failed: 'Failed' };
+    return map[status] || (status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown');
+  }
+
+  function fmtPODate(isoStr) {
+    if (!isoStr) return '—';
+    try { return new Date(isoStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+    catch (e) { return isoStr; }
+  }
+
+  function populatePOSupplierFilter() {
+    const sel = document.getElementById('poSupplierFilter');
+    if (!sel) return;
+    const current = sel.value;
+    // Collect unique suppliers
+    const seen = new Map();
+    allPurchaseOrders.forEach(po => {
+      const id = po.supplier || po.supplier_id;
+      const name = po._supplier_name || (po.supplier_data && po.supplier_data.name) || (id ? `Supplier #${id}` : null);
+      if (id && name) seen.set(String(id), name);
+    });
+    sel.innerHTML = '<option value="">All Suppliers</option>';
+    seen.forEach((name, id) => {
+      const opt = document.createElement('option');
+      opt.value = id; opt.textContent = name;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+  }
+
+  function handlePOFilter() {
+    renderPOTable();
+  }
+
+  function sortPOBy(key) {
+    if (poSortKey === key) { poSortDir = poSortDir === 'asc' ? 'desc' : 'asc'; }
+    else { poSortKey = key; poSortDir = key === 'date' ? 'desc' : 'asc'; }
+    renderPOTable();
+  }
+
+  function renderPOTable() {
+    const tbody = document.getElementById('poTableBody');
+    if (!tbody) return;
+
+    const statusFilter   = document.getElementById('poStatusFilter')?.value   || '';
+    const supplierFilter = document.getElementById('poSupplierFilter')?.value || '';
+    const search         = (document.getElementById('poSearchInput')?.value   || '').toLowerCase();
+
+    let pos = [...allPurchaseOrders];
+
+    if (statusFilter)   pos = pos.filter(po => po.status === statusFilter);
+    if (supplierFilter) pos = pos.filter(po => String(po.supplier || po.supplier_id || '') === supplierFilter);
+    if (search) pos = pos.filter(po => {
+      const supplierName = po._supplier_name || (po.supplier_data && po.supplier_data.name) || '';
+      return String(po.id).includes(search) || supplierName.toLowerCase().includes(search);
+    });
+
+    // Sort
+    pos.sort((a, b) => {
+      let va, vb;
+      if (poSortKey === 'id')       { va = a.id; vb = b.id; }
+      else if (poSortKey === 'date')     { va = a.date_created || ''; vb = b.date_created || ''; }
+      else if (poSortKey === 'expected') { va = a.expected_at_location_date || ''; vb = b.expected_at_location_date || ''; }
+      else if (poSortKey === 'supplier') { va = a._supplier_name || ''; vb = b._supplier_name || ''; }
+      else if (poSortKey === 'total')    { va = parseFloat(a.total) || 0; vb = parseFloat(b.total) || 0; }
+      else if (poSortKey === 'status')   { va = a.status || ''; vb = b.status || ''; }
+      else { va = ''; vb = ''; }
+      if (va < vb) return poSortDir === 'asc' ? -1 : 1;
+      if (va > vb) return poSortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    // Update stats
+    const statTotal   = document.getElementById('poStatTotal');
+    const statPending = document.getElementById('poStatPending');
+    const statOrdered = document.getElementById('poStatOrdered');
+    const statOnWay   = document.getElementById('poStatOnTheWay');
+    const statRecvd   = document.getElementById('poStatReceived');
+    if (statTotal)   statTotal.textContent   = allPurchaseOrders.length;
+    if (statPending) statPending.textContent = allPurchaseOrders.filter(p => p.status === 'pending').length;
+    if (statOrdered) statOrdered.textContent = allPurchaseOrders.filter(p => p.status === 'ordered').length;
+    if (statOnWay)   statOnWay.textContent   = allPurchaseOrders.filter(p => p.status === 'on-the-way').length;
+    if (statRecvd)   statRecvd.textContent   = allPurchaseOrders.filter(p => p.status === 'received').length;
+
+    if (pos.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:48px;color:#94a3b8;">${allPurchaseOrders.length === 0 ? 'Click "Refresh POs" to load purchase orders.' : 'No purchase orders match the current filters.'}</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = pos.map(po => {
+      const supplierName = po._supplier_name || (po.supplier_data && po.supplier_data.name) || (po.supplier || po.supplier_id ? `Supplier #${po.supplier || po.supplier_id}` : '—');
+      const itemCount    = (po.line_items || []).length;
+      const total        = po.total ? `$${parseFloat(po.total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
+      return `<tr>
+        <td><span class="po-id">#${po.id}</span></td>
+        <td>${fmtPODate(po.date_created)}</td>
+        <td>${fmtPODate(po.expected_at_location_date)}</td>
+        <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(supplierName)}">${escapeHtml(supplierName)}</td>
+        <td style="text-align:center;">${itemCount}</td>
+        <td>${total}</td>
+        <td><span class="po-status-badge ${getPOStatusClass(po.status)}">${getPOStatusLabel(po.status)}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
 </script>
 </body>
 </html>
