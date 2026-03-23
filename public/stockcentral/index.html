@@ -6221,8 +6221,12 @@
       renderPOTable();
       showToast(`Loaded ${allPOs.length} purchase orders`);
     } catch (e) {
-      showToast('Failed to load purchase orders: ' + e.message, 'error');
-      if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Error: ${e.message}</td></tr>`;
+      const isCORS = e instanceof TypeError && e.message === 'Failed to fetch';
+      const msg = isCORS
+        ? 'Cannot reach the ATUM Purchase Orders endpoint. The server returned an error (likely a 520). Please check that the ATUM Purchase Orders module is enabled in WooCommerce → ATUM → Settings, and that the REST API is active.'
+        : 'Failed to load purchase orders: ' + e.message;
+      showToast(isCORS ? 'Server error — see table for details' : msg, 'error');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px 32px;color:#ef4444;line-height:1.6;">${msg}</td></tr>`;
     } finally {
       if (loading) loading.style.display = 'none';
       if (tbody) tbody.style.opacity = '';
