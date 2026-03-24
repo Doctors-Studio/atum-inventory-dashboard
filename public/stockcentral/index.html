@@ -2806,6 +2806,18 @@
   <p class="login-footer">By signing in, you agree to the company's data access policies</p>
 </div>
 
+<!-- Session expiry warning banner -->
+<div id="sessionWarningBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999;
+  background:#f59e0b; color:#fff; padding:12px 20px;
+  align-items:center; justify-content:center; gap:14px;
+  font-size:14px; font-weight:500; box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+  <span>⏱ Your session will expire in 5 minutes. Save your work.</span>
+  <button onclick="extendSession()" style="background:rgba(255,255,255,0.25); border:1px solid rgba(255,255,255,0.5);
+    color:#fff; padding:5px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;">
+    Stay Logged In
+  </button>
+</div>
+
 <!-- Main Area — full width, no sidebar -->
 <div class="main-area" id="dashboardArea" style="display:none">
   <div class="main-content">
@@ -3509,6 +3521,50 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
 
+  // ── Session timeout (1 hour) ────────────────────────────────
+  const SESSION_DURATION_MS = 60 * 60 * 1000;        // 1 hour
+  const SESSION_WARNING_MS  = 55 * 60 * 1000;        // warn at 55 min
+  let _sessionTimer   = null;
+  let _sessionWarning = null;
+
+  function startSessionTimers() {
+    clearTimeout(_sessionTimer);
+    clearTimeout(_sessionWarning);
+    localStorage.setItem('ds_session_start', Date.now());
+
+    // 55-minute warning
+    _sessionWarning = setTimeout(() => {
+      showSessionWarning();
+    }, SESSION_WARNING_MS);
+
+    // 60-minute auto-logout
+    _sessionTimer = setTimeout(() => {
+      auth.signOut().then(() => {
+        showLoginError('Your session has expired. Please log back in.');
+      });
+    }, SESSION_DURATION_MS);
+  }
+
+  function clearSessionTimers() {
+    clearTimeout(_sessionTimer);
+    clearTimeout(_sessionWarning);
+    _sessionTimer   = null;
+    _sessionWarning = null;
+    localStorage.removeItem('ds_session_start');
+  }
+
+  function showSessionWarning() {
+    const banner = document.getElementById('sessionWarningBanner');
+    if (banner) banner.style.display = 'flex';
+  }
+
+  function extendSession() {
+    // Restart the full 1-hour timer
+    const banner = document.getElementById('sessionWarningBanner');
+    if (banner) banner.style.display = 'none';
+    startSessionTimers();
+  }
+
   auth.onAuthStateChanged(function(user) {
     if (user) {
       if (!user.email.toLowerCase().endsWith(ALLOWED_DOMAIN)) {
@@ -3523,12 +3579,15 @@
       const initials = user.email.slice(0, 2).toUpperCase();
       const avatarEl = document.getElementById('userAvatar');
       if (avatarEl) avatarEl.textContent = initials;
+      // Start 1-hour session timer
+      startSessionTimers();
       // Init dashboard only once
       if (!window._dashboardInited) {
         window._dashboardInited = true;
         initDashboard();
       }
     } else {
+      clearSessionTimers();
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('dashboardArea').style.display = 'none';
       document.getElementById('signOutBtn').style.display = 'none';
