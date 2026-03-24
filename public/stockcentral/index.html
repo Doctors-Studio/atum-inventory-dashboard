@@ -3115,12 +3115,9 @@
         <option value="">All Suppliers</option>
       </select>
     </div>
-    <div class="filter-group">
-      <label class="filter-label">SEARCH</label>
-      <div class="search-wrapper">
-        <span class="search-icon">&#128269;</span>
-        <input type="text" id="poSearchInput" class="search-input" placeholder="Search PO # or supplier..." oninput="handlePOFilter()">
-      </div>
+    <div class="filter-search-group">
+      <input type="text" id="poSearchInput" class="filter-search-input" placeholder="Search PO # or supplier..." oninput="handlePOFilter()">
+      <span class="filter-search-icon">&#128269;</span>
     </div>
     <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
       <a href="https://store.doctorsstudio.com/wp-admin/post-new.php?post_type=atum_purchase_order" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">+ Add Purchase Order</a>
