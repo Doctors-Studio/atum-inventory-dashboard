@@ -6561,7 +6561,6 @@
               oninput="debouncedProductSearch(${i}, this.value)"
               onfocus="triggerProductSearch(${i}, this.value)"
               autocomplete="off">
-            <div class="po-product-dropdown" id="poProductDrop_${i}" style="display:none;"></div>
           </div>
         </td>
         <td style="padding:5px 8px; text-align:center;">
@@ -6601,23 +6600,17 @@
     if (el) el.textContent = `$${total.toFixed(2)}`;
   }
 
-  // Product autocomplete
-  function debouncedProductSearch(index, query) {
-    clearTimeout(poProductSearchTimers[index]);
-    if (!query || query.length < 2) { hidePoProductDrop(index); return; }
-    poProductSearchTimers[index] = setTimeout(() => searchPOProducts(index, query), 320);
+  // Product autocomplete — uses a single global dropdown at body level
+  // to avoid position:fixed being clipped by modal's CSS transform
+  let poActiveDropIndex = null;
+
+  function _getGlobalDrop() {
+    return document.getElementById('poProductDropGlobal');
   }
 
-  function triggerProductSearch(index, query) {
-    if (query && query.length >= 2) {
-      _positionPoProductDrop(index);
-      debouncedProductSearch(index, query);
-    }
-  }
-
-  function _positionPoProductDrop(index) {
+  function _positionGlobalDrop(index) {
     const input = document.querySelector(`#poModalLineItems tr[data-li="${index}"] .po-product-input`);
-    const drop  = document.getElementById(`poProductDrop_${index}`);
+    const drop  = _getGlobalDrop();
     if (!input || !drop) return;
     const rect = input.getBoundingClientRect();
     drop.style.top   = (rect.bottom + 4) + 'px';
@@ -6625,10 +6618,21 @@
     drop.style.width = rect.width + 'px';
   }
 
+  function debouncedProductSearch(index, query) {
+    clearTimeout(poProductSearchTimers[index]);
+    if (!query || query.length < 2) { hidePoProductDrop(); return; }
+    poProductSearchTimers[index] = setTimeout(() => searchPOProducts(index, query), 320);
+  }
+
+  function triggerProductSearch(index, query) {
+    if (query && query.length >= 2) debouncedProductSearch(index, query);
+  }
+
   async function searchPOProducts(index, query) {
-    const drop = document.getElementById(`poProductDrop_${index}`);
+    const drop = _getGlobalDrop();
     if (!drop) return;
-    _positionPoProductDrop(index);
+    poActiveDropIndex = index;
+    _positionGlobalDrop(index);
     drop.style.display = '';
     drop.innerHTML = '<div style="padding:9px 12px;color:#94a3b8;font-size:13px;">Searching…</div>';
     try {
@@ -6643,7 +6647,7 @@
       }
       drop.innerHTML = products.slice(0, 20).map(p => `
         <div class="po-product-drop-item"
-          onclick="selectPOProduct(${index}, ${p.id}, ${JSON.stringify(escapeHtml(p.name))}, ${parseFloat(p.price) || 0})">
+          onmousedown="selectPOProduct(${index}, ${p.id}, ${JSON.stringify(escapeHtml(p.name))}, ${parseFloat(p.price) || 0})">
           <span style="font-weight:500;">${escapeHtml(p.name)}</span>
           ${p.sku ? `<span style="color:#94a3b8;font-size:11px;margin-left:6px;">SKU: ${escapeHtml(p.sku)}</span>` : ''}
           ${p.price ? `<span style="float:right;color:#6366f1;font-weight:600;">$${parseFloat(p.price).toFixed(2)}</span>` : ''}
@@ -6658,18 +6662,19 @@
     poModalLineItems[index].product_id = id;
     poModalLineItems[index].name       = name;
     poModalLineItems[index].unit_price = price || 0;
-    hidePoProductDrop(index);
+    hidePoProductDrop();
     renderPOModalLineItems();
   }
 
-  function hidePoProductDrop(index) {
-    const d = document.getElementById(`poProductDrop_${index}`);
+  function hidePoProductDrop() {
+    const d = _getGlobalDrop();
     if (d) d.style.display = 'none';
+    poActiveDropIndex = null;
   }
 
   document.addEventListener('click', e => {
-    if (!e.target.closest('.po-product-search-wrap')) {
-      document.querySelectorAll('.po-product-dropdown').forEach(d => d.style.display = 'none');
+    if (!e.target.closest('.po-product-search-wrap') && !e.target.closest('#poProductDropGlobal')) {
+      hidePoProductDrop();
     }
   }, true);
 
@@ -6749,5 +6754,9 @@
   }
 
 </script>
+
+<!-- Global PO product search dropdown — lives at body level to avoid transform clipping -->
+<div id="poProductDropGlobal" class="po-product-dropdown" style="display:none; position:fixed;"></div>
+
 </body>
 </html>
