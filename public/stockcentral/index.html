@@ -4942,6 +4942,8 @@
       if (analytics)    analytics.style.display    = 'none';
       if (quickStats)   quickStats.style.display   = 'none';
       if (alertsSec)    alertsSec.style.display     = 'none';
+      // Auto-load POs the first time the tab is opened
+      if (allPurchaseOrders.length === 0) fetchPurchaseOrders();
       return;
     }
 
