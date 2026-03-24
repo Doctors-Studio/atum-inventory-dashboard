@@ -2729,6 +2729,55 @@
   .po-status-badge.cancelled  { background: rgba(148,163,184,0.12); color: #64748b; }
   .po-status-badge.failed     { background: rgba(239,68,68,0.12);  color: #dc2626; }
   .po-status-badge.draft      { background: rgba(148,163,184,0.12); color: #64748b; }
+
+  /* ── PO Modal Form ───────────────────────────────────────── */
+  .po-modal-form-row {
+    display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .po-form-group {
+    flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 5px;
+  }
+  .po-form-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: #94a3b8;
+  }
+  .po-form-input {
+    padding: 8px 11px; border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: 13px; font-family: inherit; color: #1e293b; width: 100%;
+    transition: border-color 0.15s;
+  }
+  .po-form-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+  .po-line-table { width: 100%; border-collapse: collapse; }
+  .po-line-table th {
+    padding: 8px 10px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; color: #94a3b8; background: #f8fafc;
+    border-bottom: 1px solid #f1f5f9; text-align: left;
+  }
+  .po-line-table th.right { text-align: right; }
+  .po-line-table th.center { text-align: center; }
+  .po-product-search-wrap { position: relative; }
+  .po-product-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: white; border: 1px solid #e2e8f0; border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 200;
+    max-height: 200px; overflow-y: auto;
+  }
+  .po-product-drop-item {
+    padding: 9px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f8fafc;
+  }
+  .po-product-drop-item:hover { background: #f5f7ff; }
+  .po-product-drop-item:last-child { border-bottom: none; }
+  .po-modal-total-row {
+    display: flex; justify-content: flex-end; align-items: center;
+    padding: 12px 10px 0; border-top: 1px solid #f1f5f9; margin-top: 6px;
+    font-size: 14px; font-weight: 700; color: #1e293b; gap: 8px;
+  }
+  .po-edit-btn {
+    background: none; border: 1px solid #e2e8f0; border-radius: 6px;
+    padding: 4px 10px; cursor: pointer; font-size: 12px; color: #6366f1;
+    font-weight: 500; transition: all 0.15s;
+  }
+  .po-edit-btn:hover { background: #f5f7ff; border-color: #6366f1; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -3120,7 +3169,7 @@
       <span class="filter-search-icon">&#128269;</span>
     </div>
     <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
-      <a href="https://store.doctorsstudio.com/wp-admin/post-new.php?post_type=atum_purchase_order" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">+ Add Purchase Order</a>
+      <button class="btn btn-primary btn-sm" onclick="openPOModal()">+ Add Purchase Order</button>
       <button class="btn btn-secondary btn-sm" onclick="fetchPurchaseOrders(true)" id="poRefreshBtn">&#8635; Refresh POs</button>
     </div>
   </div>
@@ -3143,12 +3192,13 @@
     <table id="poTable" style="width:100%; table-layout:fixed;">
       <colgroup>
         <col style="width:80px;">
-        <col style="width:110px;">
-        <col style="width:120px;">
-        <col style="width:200px;">
-        <col style="width:80px;">
-        <col style="width:100px;">
-        <col style="width:130px;">
+        <col style="width:105px;">
+        <col style="width:115px;">
+        <col style="width:175px;">
+        <col style="width:70px;">
+        <col style="width:95px;">
+        <col style="width:125px;">
+        <col style="width:75px;">
       </colgroup>
       <thead>
         <tr>
@@ -3159,12 +3209,81 @@
           <th>Items</th>
           <th onclick="sortPOBy('total')" style="cursor:pointer;">Total <span class="sort-icon">↕</span></th>
           <th onclick="sortPOBy('status')" style="cursor:pointer;">Status <span class="sort-icon">↕</span></th>
+          <th></th>
         </tr>
       </thead>
       <tbody id="poTableBody">
-        <tr><td colspan="7" style="text-align:center; padding:48px; color:#94a3b8;">Click "Refresh POs" to load purchase orders.</td></tr>
+        <tr><td colspan="8" style="text-align:center; padding:48px; color:#94a3b8;">Click "Refresh POs" to load purchase orders.</td></tr>
       </tbody>
     </table>
+  </div>
+</div>
+
+<!-- PO Create/Edit Modal -->
+<div id="poModal" class="modal-overlay" onclick="if(event.target===this)closePOModal()">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-header" style="border-bottom:1px solid #f1f5f9; padding-bottom:14px;">
+      <h2 id="poModalTitle" style="font-size:17px; font-weight:700; color:#1e293b;">New Purchase Order</h2>
+    </div>
+    <div class="modal-body" style="padding:18px 22px; overflow-y:auto; max-height:65vh;">
+
+      <!-- Row 1: Supplier · Status · Expected Date -->
+      <div class="po-modal-form-row">
+        <div class="po-form-group" style="flex:2;">
+          <label class="po-form-label">Supplier</label>
+          <select id="poModalSupplier" class="po-form-input">
+            <option value="">Loading suppliers…</option>
+          </select>
+        </div>
+        <div class="po-form-group">
+          <label class="po-form-label">Status</label>
+          <select id="poModalStatus" class="po-form-input">
+            <option value="pending">Pending</option>
+            <option value="ordered">Ordered</option>
+            <option value="on-the-way">On the Way</option>
+            <option value="receiving">Receiving</option>
+            <option value="received">Received</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
+        <div class="po-form-group">
+          <label class="po-form-label">Expected Date</label>
+          <input type="date" id="poModalExpected" class="po-form-input">
+        </div>
+      </div>
+
+      <!-- Line Items -->
+      <div style="margin-top:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <label class="po-form-label" style="margin:0;">Line Items</label>
+          <button class="btn btn-secondary btn-sm" onclick="addPOLineItemRow()">+ Add Item</button>
+        </div>
+        <table class="po-line-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th class="center" style="width:75px;">Qty</th>
+              <th class="right" style="width:100px;">Unit Price</th>
+              <th class="right" style="width:100px;">Total</th>
+              <th style="width:36px;"></th>
+            </tr>
+          </thead>
+          <tbody id="poModalLineItems">
+            <tr id="poModalEmptyRow"><td colspan="5" style="text-align:center;padding:22px;color:#94a3b8;font-size:13px;">No items yet — click "+ Add Item"</td></tr>
+          </tbody>
+        </table>
+        <div class="po-modal-total-row">
+          <span style="color:#94a3b8; font-weight:500; font-size:13px;">Order Total</span>
+          <span id="poModalTotal">$0.00</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex; gap:10px; padding:14px 22px; border-top:1px solid #f1f5f9;">
+      <button class="btn btn-secondary" onclick="closePOModal()">Cancel</button>
+      <button id="poModalDeleteBtn" class="btn btn-sm" style="display:none; background:rgba(239,68,68,0.1); color:#dc2626; border:1px solid rgba(239,68,68,0.2);" onclick="deletePO()">Delete PO</button>
+      <button id="poModalSaveBtn" class="btn btn-primary" onclick="submitPO()" style="margin-left:auto;">Save Purchase Order</button>
+    </div>
   </div>
 </div>
 
@@ -6330,7 +6449,7 @@
     if (statRecvd)   statRecvd.textContent   = allPurchaseOrders.filter(p => p.status === 'received').length;
 
     if (pos.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:48px;color:#94a3b8;">${allPurchaseOrders.length === 0 ? 'Click "Refresh POs" to load purchase orders.' : 'No purchase orders match the current filters.'}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:48px;color:#94a3b8;">${allPurchaseOrders.length === 0 ? 'Click "Refresh POs" to load purchase orders.' : 'No purchase orders match the current filters.'}</td></tr>`;
       return;
     }
 
@@ -6343,11 +6462,274 @@
         <td>${fmtPODate(po.date_created)}</td>
         <td>${fmtPODate(po.expected_at_location_date)}</td>
         <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(supplierName)}">${escapeHtml(supplierName)}</td>
-        <td style="text-align:center;">${itemCount}</td>
+        <td style="text-align:center;">${itemCount || '—'}</td>
         <td>${total}</td>
         <td><span class="po-status-badge ${getPOStatusClass(po.status)}">${getPOStatusLabel(po.status)}</span></td>
+        <td style="text-align:center;"><button class="po-edit-btn" onclick='openPOModal(${JSON.stringify(po)})'>Edit</button></td>
       </tr>`;
     }).join('');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  //  PO MODAL — Create / Edit
+  // ─────────────────────────────────────────────────────────────
+  let poModalMode      = 'create';
+  let poModalEditId    = null;
+  let poSuppliersCache = null;
+  let poModalLineItems = [];
+  let poProductSearchTimers = {};
+
+  function openPOModal(po = null) {
+    poModalMode    = po ? 'edit' : 'create';
+    poModalEditId  = po ? po.id : null;
+
+    // Clone line items into editable format
+    poModalLineItems = po ? (po.line_items || []).map(i => ({
+      product_id : i.product_id || '',
+      name       : i.name       || '',
+      qty        : parseFloat(i.quantity) || 1,
+      unit_price : i.quantity > 0 ? (parseFloat(i.total) / i.quantity) : 0,
+    })) : [];
+
+    document.getElementById('poModalTitle').textContent = po ? `Edit PO #${po.id}` : 'New Purchase Order';
+    document.getElementById('poModalDeleteBtn').style.display = po ? '' : 'none';
+    document.getElementById('poModalStatus').value = po ? (po.status || 'pending') : 'pending';
+    const expVal = po && po.expected_at_location_date
+      ? po.expected_at_location_date.split(' ')[0] : '';
+    document.getElementById('poModalExpected').value = expVal;
+
+    loadSuppliersForModal().then(() => {
+      if (po && po.supplier) document.getElementById('poModalSupplier').value = po.supplier;
+    });
+
+    renderPOModalLineItems();
+    document.getElementById('poModal').classList.add('active');
+  }
+
+  function closePOModal() {
+    document.getElementById('poModal').classList.remove('active');
+  }
+
+  async function loadSuppliersForModal() {
+    const sel = document.getElementById('poModalSupplier');
+    if (poSuppliersCache) { _fillSupplierSel(sel, poSuppliersCache); return; }
+    sel.innerHTML = '<option value="">Loading…</option>';
+    try {
+      const resp = await fetch(
+        'https://store.doctorsstudio.com/wp-json/ds-inventory/v1/suppliers?secret=ds-atum-po-2026'
+      );
+      if (!resp.ok) throw new Error('Failed');
+      poSuppliersCache = await resp.json();
+      _fillSupplierSel(sel, poSuppliersCache);
+    } catch(e) {
+      sel.innerHTML = '<option value="">Could not load suppliers</option>';
+    }
+  }
+
+  function _fillSupplierSel(sel, suppliers) {
+    sel.innerHTML = '<option value="">— Select Supplier —</option>' +
+      suppliers.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  }
+
+  function addPOLineItemRow(item = null) {
+    poModalLineItems.push(item ? { ...item } : { product_id: '', name: '', qty: 1, unit_price: 0 });
+    renderPOModalLineItems();
+  }
+
+  function removePOLineItemRow(index) {
+    poModalLineItems.splice(index, 1);
+    renderPOModalLineItems();
+  }
+
+  function renderPOModalLineItems() {
+    const tbody = document.getElementById('poModalLineItems');
+    if (!tbody) return;
+    if (poModalLineItems.length === 0) {
+      tbody.innerHTML = `<tr id="poModalEmptyRow"><td colspan="5" style="text-align:center;padding:22px;color:#94a3b8;font-size:13px;">No items yet — click "+ Add Item"</td></tr>`;
+      updatePOModalTotal();
+      return;
+    }
+    tbody.innerHTML = poModalLineItems.map((item, i) => `
+      <tr data-li="${i}">
+        <td style="padding:5px 8px; position:relative;">
+          <div class="po-product-search-wrap">
+            <input type="text" class="po-product-input po-form-input" style="padding:6px 9px;"
+              value="${escapeHtml(item.name || '')}"
+              placeholder="Search product…"
+              oninput="debouncedProductSearch(${i}, this.value)"
+              onfocus="triggerProductSearch(${i}, this.value)"
+              autocomplete="off">
+            <div class="po-product-dropdown" id="poProductDrop_${i}" style="display:none;"></div>
+          </div>
+        </td>
+        <td style="padding:5px 8px; text-align:center;">
+          <input type="number" min="1" value="${item.qty || 1}"
+            oninput="updatePOLineItem(${i},'qty',this.value)"
+            style="width:65px; padding:6px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; text-align:center;">
+        </td>
+        <td style="padding:5px 8px;">
+          <input type="number" min="0" step="0.01" value="${(item.unit_price || 0).toFixed(2)}"
+            oninput="updatePOLineItem(${i},'unit_price',this.value)"
+            style="width:88px; padding:6px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; text-align:right;">
+        </td>
+        <td style="padding:5px 10px; text-align:right; font-size:13px; font-weight:600; color:#1e293b; white-space:nowrap;" id="poLiTotal_${i}">
+          $${((item.qty || 1) * (item.unit_price || 0)).toFixed(2)}
+        </td>
+        <td style="padding:5px 8px; text-align:center;">
+          <button onclick="removePOLineItemRow(${i})"
+            style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:16px;line-height:1;padding:2px 4px;">✕</button>
+        </td>
+      </tr>
+    `).join('');
+    updatePOModalTotal();
+  }
+
+  function updatePOLineItem(index, field, value) {
+    if (field === 'qty')        poModalLineItems[index].qty        = parseFloat(value) || 1;
+    if (field === 'unit_price') poModalLineItems[index].unit_price = parseFloat(value) || 0;
+    const li  = poModalLineItems[index];
+    const tot = document.getElementById(`poLiTotal_${index}`);
+    if (tot) tot.textContent = `$${((li.qty || 1) * (li.unit_price || 0)).toFixed(2)}`;
+    updatePOModalTotal();
+  }
+
+  function updatePOModalTotal() {
+    const total = poModalLineItems.reduce((s, li) => s + (li.qty || 1) * (li.unit_price || 0), 0);
+    const el = document.getElementById('poModalTotal');
+    if (el) el.textContent = `$${total.toFixed(2)}`;
+  }
+
+  // Product autocomplete
+  function debouncedProductSearch(index, query) {
+    clearTimeout(poProductSearchTimers[index]);
+    if (!query || query.length < 2) { hidePoProductDrop(index); return; }
+    poProductSearchTimers[index] = setTimeout(() => searchPOProducts(index, query), 320);
+  }
+
+  function triggerProductSearch(index, query) {
+    if (query && query.length >= 2) debouncedProductSearch(index, query);
+  }
+
+  async function searchPOProducts(index, query) {
+    const drop = document.getElementById(`poProductDrop_${index}`);
+    if (!drop) return;
+    drop.style.display = '';
+    drop.innerHTML = '<div style="padding:9px 12px;color:#94a3b8;font-size:13px;">Searching…</div>';
+    try {
+      const resp = await fetch(
+        `https://store.doctorsstudio.com/wp-json/ds-inventory/v1/products?secret=ds-atum-po-2026&search=${encodeURIComponent(query)}`
+      );
+      if (!resp.ok) throw new Error('Search failed');
+      const products = await resp.json();
+      if (!products.length) {
+        drop.innerHTML = '<div style="padding:9px 12px;color:#94a3b8;font-size:13px;">No products found</div>';
+        return;
+      }
+      drop.innerHTML = products.slice(0, 20).map(p => `
+        <div class="po-product-drop-item"
+          onclick="selectPOProduct(${index}, ${p.id}, ${JSON.stringify(escapeHtml(p.name))}, ${parseFloat(p.price) || 0})">
+          <span style="font-weight:500;">${escapeHtml(p.name)}</span>
+          ${p.sku ? `<span style="color:#94a3b8;font-size:11px;margin-left:6px;">SKU: ${escapeHtml(p.sku)}</span>` : ''}
+          ${p.price ? `<span style="float:right;color:#6366f1;font-weight:600;">$${parseFloat(p.price).toFixed(2)}</span>` : ''}
+        </div>
+      `).join('');
+    } catch(e) {
+      drop.innerHTML = '<div style="padding:9px 12px;color:#ef4444;font-size:13px;">Search failed</div>';
+    }
+  }
+
+  function selectPOProduct(index, id, name, price) {
+    poModalLineItems[index].product_id = id;
+    poModalLineItems[index].name       = name;
+    poModalLineItems[index].unit_price = price || 0;
+    hidePoProductDrop(index);
+    renderPOModalLineItems();
+  }
+
+  function hidePoProductDrop(index) {
+    const d = document.getElementById(`poProductDrop_${index}`);
+    if (d) d.style.display = 'none';
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.po-product-search-wrap')) {
+      document.querySelectorAll('.po-product-dropdown').forEach(d => d.style.display = 'none');
+    }
+  }, true);
+
+  // Save (create or update)
+  async function submitPO() {
+    const btn = document.getElementById('poModalSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    const supplier_id  = document.getElementById('poModalSupplier').value;
+    const status       = document.getElementById('poModalStatus').value;
+    const date_expected = document.getElementById('poModalExpected').value;
+
+    const body = {
+      secret      : 'ds-atum-po-2026',
+      supplier_id : supplier_id ? parseInt(supplier_id) : 0,
+      status,
+      date_expected,
+      currency    : 'USD',
+      line_items  : poModalLineItems
+        .filter(li => li.product_id)
+        .map(li => ({
+          product_id : parseInt(li.product_id),
+          quantity   : parseFloat(li.qty)        || 1,
+          unit_price : parseFloat(li.unit_price) || 0,
+        })),
+    };
+
+    try {
+      const isEdit = poModalMode === 'edit';
+      const url    = isEdit
+        ? `https://store.doctorsstudio.com/wp-json/ds-inventory/v1/purchase-orders/${poModalEditId}`
+        : `https://store.doctorsstudio.com/wp-json/ds-inventory/v1/purchase-orders`;
+      const resp = await fetch(url, {
+        method  : isEdit ? 'PUT' : 'POST',
+        headers : { 'Content-Type': 'application/json' },
+        body    : JSON.stringify(body),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.message || `Server error ${resp.status}`);
+      }
+      closePOModal();
+      showToast(isEdit ? `PO #${poModalEditId} updated` : 'Purchase order created ✓', 'success');
+      fetchPurchaseOrders(true);
+    } catch(e) {
+      showToast('Error: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Purchase Order';
+    }
+  }
+
+  // Delete
+  async function deletePO() {
+    if (!confirm(`Delete PO #${poModalEditId}? This cannot be undone.`)) return;
+    const btn = document.getElementById('poModalDeleteBtn');
+    btn.disabled = true;
+    btn.textContent = 'Deleting…';
+    try {
+      const resp = await fetch(
+        `https://store.doctorsstudio.com/wp-json/ds-inventory/v1/purchase-orders/${poModalEditId}?secret=ds-atum-po-2026`,
+        { method: 'DELETE' }
+      );
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.message || `Server error ${resp.status}`);
+      }
+      closePOModal();
+      showToast(`PO #${poModalEditId} deleted`, 'success');
+      fetchPurchaseOrders(true);
+    } catch(e) {
+      showToast('Error: ' + e.message, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Delete PO';
+    }
   }
 
 </script>
