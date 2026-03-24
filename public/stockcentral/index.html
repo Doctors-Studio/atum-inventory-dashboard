@@ -2757,10 +2757,10 @@
   .po-line-table th.center { text-align: center; }
   .po-product-search-wrap { position: relative; }
   .po-product-dropdown {
-    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    position: fixed;
     background: white; border: 1px solid #e2e8f0; border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 200;
-    max-height: 200px; overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 9999;
+    max-height: 220px; overflow-y: auto;
   }
   .po-product-drop-item {
     padding: 9px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f8fafc;
@@ -6609,12 +6609,26 @@
   }
 
   function triggerProductSearch(index, query) {
-    if (query && query.length >= 2) debouncedProductSearch(index, query);
+    if (query && query.length >= 2) {
+      _positionPoProductDrop(index);
+      debouncedProductSearch(index, query);
+    }
+  }
+
+  function _positionPoProductDrop(index) {
+    const input = document.querySelector(`#poModalLineItems tr[data-li="${index}"] .po-product-input`);
+    const drop  = document.getElementById(`poProductDrop_${index}`);
+    if (!input || !drop) return;
+    const rect = input.getBoundingClientRect();
+    drop.style.top   = (rect.bottom + 4) + 'px';
+    drop.style.left  = rect.left + 'px';
+    drop.style.width = rect.width + 'px';
   }
 
   async function searchPOProducts(index, query) {
     const drop = document.getElementById(`poProductDrop_${index}`);
     if (!drop) return;
+    _positionPoProductDrop(index);
     drop.style.display = '';
     drop.innerHTML = '<div style="padding:9px 12px;color:#94a3b8;font-size:13px;">Searching…</div>';
     try {
