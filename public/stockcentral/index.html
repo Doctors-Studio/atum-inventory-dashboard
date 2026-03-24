@@ -2728,6 +2728,7 @@
   .po-status-badge.received   { background: rgba(16,185,129,0.12); color: #059669; }
   .po-status-badge.cancelled  { background: rgba(148,163,184,0.12); color: #64748b; }
   .po-status-badge.failed     { background: rgba(239,68,68,0.12);  color: #dc2626; }
+  .po-status-badge.draft      { background: rgba(148,163,184,0.12); color: #64748b; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -3121,8 +3122,9 @@
         <input type="text" id="poSearchInput" class="search-input" placeholder="Search PO # or supplier..." oninput="handlePOFilter()">
       </div>
     </div>
-    <div style="margin-left:auto;">
-      <button class="btn btn-primary btn-sm" onclick="fetchPurchaseOrders(true)" id="poRefreshBtn">&#8635; Refresh POs</button>
+    <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+      <a href="https://store.doctorsstudio.com/wp-admin/post-new.php?post_type=atum_purchase_order" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">+ Add Purchase Order</a>
+      <button class="btn btn-secondary btn-sm" onclick="fetchPurchaseOrders(true)" id="poRefreshBtn">&#8635; Refresh POs</button>
     </div>
   </div>
 
@@ -6194,24 +6196,33 @@
       }
     }
 
-    // Fetch from ATUM API
-    const config = getConfig();
-    const baseUrl = `${config.siteUrl}/wp-json/wc/v3/atum/purchase-orders?consumer_key=${encodeURIComponent(config.consumerKey)}&consumer_secret=${encodeURIComponent(config.consumerSecret)}&per_page=100`;
-
+    // Fetch from custom DS REST endpoint (no auth header needed — secret in query param)
     try {
-      const firstResp = await fetch(baseUrl + '&page=1');
-      if (!firstResp.ok) throw new Error(`API error ${firstResp.status}: ${firstResp.statusText}`);
-      const totalPages = parseInt(firstResp.headers.get('X-WP-TotalPages')) || 1;
-      let allPOs = await firstResp.json();
-
-      if (totalPages > 1) {
-        const pagePromises = [];
-        for (let p = 2; p <= totalPages; p++) {
-          pagePromises.push(fetch(baseUrl + '&page=' + p).then(r => r.ok ? r.json() : []).catch(() => []));
-        }
-        const results = await Promise.all(pagePromises);
-        results.forEach(data => { if (Array.isArray(data)) allPOs = allPOs.concat(data); });
+      const url = `https://store.doctorsstudio.com/wp-json/ds-inventory/v1/purchase-orders?secret=ds-atum-po-2026`;
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.message || `API error ${resp.status}: ${resp.statusText}`);
       }
+      const data = await resp.json();
+      if (!Array.isArray(data)) throw new Error('Unexpected response format from server.');
+
+      // Normalise field names to match what renderPOTable() expects
+      const allPOs = data.map(po => ({
+        id: po.id,
+        date_created: po.date_created,
+        expected_at_location_date: po.date_expected || '',
+        status: po.status || 'unknown',
+        supplier: (po.supplier_id && po.supplier_id !== '0' && po.supplier_id !== 0) ? String(po.supplier_id) : '',
+        _supplier_name: (po.supplier_name && po.supplier_id && po.supplier_id !== '0' && po.supplier_id !== 0) ? po.supplier_name : '',
+        line_items: (po.line_items || []).map(item => ({
+          product_id: item.product_id,
+          name: item.name,
+          quantity: item.quantity,
+          total: item.total,
+        })),
+        total: po.total || '',
+      }));
 
       allPurchaseOrders = allPOs;
       const cachePayload = { orders: allPOs, timestamp: Date.now() };
@@ -6221,11 +6232,8 @@
       renderPOTable();
       showToast(`Loaded ${allPOs.length} purchase orders`);
     } catch (e) {
-      const isCORS = e instanceof TypeError && e.message === 'Failed to fetch';
-      const msg = isCORS
-        ? 'Cannot reach the ATUM Purchase Orders endpoint. The server returned an error (likely a 520). Please check that the ATUM Purchase Orders module is enabled in WooCommerce → ATUM → Settings, and that the REST API is active.'
-        : 'Failed to load purchase orders: ' + e.message;
-      showToast(isCORS ? 'Server error — see table for details' : msg, 'error');
+      const msg = 'Failed to load purchase orders: ' + e.message;
+      showToast(msg, 'error');
       if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px 32px;color:#ef4444;line-height:1.6;">${msg}</td></tr>`;
     } finally {
       if (loading) loading.style.display = 'none';
