@@ -6330,7 +6330,7 @@
         id: po.id,
         date_created: po.date_created,
         expected_at_location_date: po.date_expected || '',
-        status: po.status || 'unknown',
+        status: normalizePoStatus(po.status),
         supplier: (po.supplier_id && po.supplier_id !== '0' && po.supplier_id !== 0) ? String(po.supplier_id) : '',
         _supplier_name: (po.supplier_name && po.supplier_id && po.supplier_id !== '0' && po.supplier_id !== 0) ? po.supplier_name : '',
         line_items: (po.line_items || []).map(item => ({
@@ -6360,14 +6360,29 @@
     }
   }
 
+  // Normalise raw ATUM post_status strings → display status
+  function normalizePoStatus(s) {
+    const rawMap = {
+      'atum_pending'  : 'pending',
+      'atum_ordered'  : 'ordered',
+      'atum_ontheway' : 'on-the-way',
+      'atum_receiving': 'receiving',
+      'atum_received' : 'received',
+      'atum_cancelled': 'cancelled',
+      'publish'       : 'received',
+    };
+    if (!s) return 'draft';
+    return rawMap[s] || s;
+  }
+
   function getPOStatusClass(status) {
-    const map = { pending: 'pending', ordered: 'ordered', 'on-the-way': 'on-the-way', receiving: 'receiving', received: 'received', cancelled: 'cancelled', failed: 'failed' };
-    return map[status] || 'pending';
+    const map = { pending: 'pending', ordered: 'ordered', 'on-the-way': 'on-the-way', receiving: 'receiving', received: 'received', cancelled: 'cancelled', failed: 'failed', draft: 'draft', unknown: 'draft' };
+    return map[status] || 'draft';
   }
 
   function getPOStatusLabel(status) {
-    const map = { pending: 'Pending', ordered: 'Ordered', 'on-the-way': 'On the Way', receiving: 'Receiving', received: 'Received', cancelled: 'Cancelled', failed: 'Failed' };
-    return map[status] || (status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown');
+    const map = { pending: 'Pending', ordered: 'Ordered', 'on-the-way': 'On the Way', receiving: 'Receiving', received: 'Received', cancelled: 'Cancelled', failed: 'Failed', draft: 'Draft', unknown: 'Draft' };
+    return map[status] || (status ? status.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Draft');
   }
 
   function fmtPODate(isoStr) {
