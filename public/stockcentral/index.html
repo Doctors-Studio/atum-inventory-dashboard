@@ -4787,11 +4787,8 @@
         if (!p.name.toLowerCase().includes(query) && !p.sku.toLowerCase().includes(query)) return false;
       }
 
-      // Location filter — pass if product has MI data at a selected location,
-      // OR if no status filter is set (show everything at that location).
-      // When status IS filtered, products without MI data are handled by the
-      // status filter below (they fall through to global ATUM status check).
-      if (selectedLocations.length > 0 && selectedStatuses.length === 0) {
+      // Location filter — product must have ATUM MI data at the selected location
+      if (selectedLocations.length > 0) {
         const locMatch = selectedLocations.some(loc => {
           if (loc === 'boca')     return p.bocaQty     !== null && p.bocaQty     !== undefined;
           if (loc === 'jupiter')  return p.jupiterQty  !== null && p.jupiterQty  !== undefined;
@@ -4809,11 +4806,8 @@
         if (selectedLocations.length > 0) {
           statusMatch = selectedLocations.some(loc => {
             const locQty = loc === 'boca' ? p.bocaQty : loc === 'jupiter' ? p.jupiterQty : p.dropshipQty;
-            // If MI data exists for this location, classify by it.
-            // If no MI data, fall back to the global ATUM classification.
             const locStatus = (locQty !== null && locQty !== undefined)
-              ? classifyProduct(p, threshold, locQty)
-              : classifyProduct(p, threshold);
+              ? classifyProduct(p, threshold, locQty) : 'outofstock';
             return selectedStatuses.some(s =>
               (s === 'instock'    && locStatus === 'instock')    ||
               (s === 'low'        && locStatus === 'lowstock')   ||
